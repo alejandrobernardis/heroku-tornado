@@ -19,7 +19,7 @@ from tornado.ioloop import IOLoop, TimeoutError
 from tornado.web import Application
 
 options.define('debug', True)
-options.define('port', os.environ.get("PORT", 5000))
+options.define('port', os.environ.get('PORT', 5000))
 options.define('domain', 'xxx.heroku.com')
 options.define('prefork_process', -1)
 options.define('xheaders', False)
@@ -27,42 +27,50 @@ options.define('xheaders', False)
 
 @gen.coroutine
 def start_server(**settings):
-    if not settings:
+    if settings is None:
         settings = options.options.as_dict()
+
     else:
         settings.update(options.options.as_dict())
-    application = Application([(r'/', handlers.MainHandler)], **settings)
-    http_server = HTTPServer(application, **{
-        'xheaders': options.options.xheaders
-    })
+
+    app = Application([(r'/', handlers.MainHandler)], **settings)
+    http_server = HTTPServer(app, **{'xheaders': options.options.xheaders})
     IOLoop.instance()
+
     with stack_context.NullContext():
         if options.options.prefork_process > -1:
             http_server.bind(options.options.port)
             http_server.start(options.options.prefork_process)
+
         else:
             http_server.listen(options.options.port)
+    
     logging.info('Running server on https://{domain}:{port}'.format(**settings))
     yield gen.Task(lambda callback: None)
 
 
-def run(start_callback):
+def run(start_callback, **kwargs):
     options.parse_command_line(final=False)
     io_loop = IOLoop.current()
+    
     @gen.coroutine
-    def _invoke_callback(wrapped_callback, **stts):
-        yield gen.Task(wrapped_callback, **stts)
+    def _invoke_callback(wrapped_callback, **settings):
+        yield gen.Task(wrapped_callback, **settings)
+    
     shutdown_by_exception = False
+    
     try:
         level = logging.DEBUG if options.options.debug else logging.INFO
         logging.getLogger().setLevel(level)
-        io_loop.run_sync(partial(_invoke_callback, start_callback))
+        io_loop.run_sync(partial(_invoke_callback, start_callback, **kwargs))
+    
     except TimeoutError:
         pass
+    
     except Exception, e:
         shutdown_by_exception = True
         logging.info('Unhandled exception in %s' % sys.argv[0])
-        logging.warn(str(e))
+    
     if shutdown_by_exception:
         sys.exit(1)
 
@@ -71,4 +79,4 @@ if __name__ == '__main__':
     try:
         run(start_server)
     except:
-        pass
+        logging.info('Au revoir!')
