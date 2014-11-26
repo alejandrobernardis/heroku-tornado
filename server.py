@@ -20,7 +20,7 @@ from tornado.web import Application
 
 options.define('debug', True)
 options.define('port', os.environ.get('PORT', 5000))
-options.define('domain', 'xxx.heroku.com')
+options.define('domain', 'localhost')
 options.define('prefork_process', -1)
 options.define('xheaders', False)
 
