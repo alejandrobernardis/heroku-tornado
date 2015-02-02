@@ -12,3 +12,8 @@ from tornado.web import RequestHandler
 class MainHandler(RequestHandler):
     def get(self, *args, **kwargs):
         self.finish('Heroku+Tornado, running...')
+
+
+handlers_list = [
+    (r'/', MainHandler)
+]
